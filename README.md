@@ -2,6 +2,12 @@
 
 Data Object & Data Transfer Objects for Magento 2
 
+## Installation
+
+```
+composer require rkt/magento-data
+```
+
 ## Features
 1. Instantiate a data object class using `from` method.
   With a below data object:
