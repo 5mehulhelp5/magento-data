@@ -1,0 +1,29 @@
+{
+    "name": "rkt/mage-data",
+    "description": "Data Object & Data Transfer Objects for Magento 2",
+    "type": "magento2-module",
+    "require": {
+        "magento/framework": "*",
+        "magento/module-catalog": ">=103.0.0",
+        "magento/module-checkout": ">=100.3.0",
+        "magento/module-customer": ">=102.0.0",
+        "symfony/serializer": "^7.2.3",
+        "symfony/validator": "^7.2.3",
+        "symfony/property-access": "^7.2.3"
+    },
+    "authors": [{
+        "name": "Rajeev K Tomy",
+        "email": "rajeevphpdeveloper@gmail.com"
+    }],
+    "license": [
+        "BSD-3-Clause"
+    ],
+    "autoload": {
+        "files": [
+            "src/registration.php"
+        ],
+        "psr-4": {
+            "Rkt\\MageData\\": "src/"
+        }
+    }
+}
