@@ -1,5 +1,5 @@
 {
-    "name": "rkt/mage-data",
+    "name": "rkt/magento-data",
     "description": "Data Object & Data Transfer Objects for Magento 2",
     "type": "magento2-module",
     "require": {
