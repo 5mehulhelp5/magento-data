@@ -68,7 +68,7 @@ composer require rkt/magento-data
   If you want to provide custom validation messages, then that is also possible. All you need to do is include another method
   `messages()` in your DO. An example:
   ```
-    public function rules(): array
+    public function messages(): array
     {
         return [
             'email.email' => 'Customer email is invalid.',
