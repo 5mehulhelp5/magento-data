@@ -4,7 +4,8 @@ declare(strict_types=1);
 
 namespace Rkt\MageData;
 
-use Rkt\MageData\Trait\UseValidation;
+use Rkt\MageData\Exceptions\ValidationException;
+use Rkt\MageData\Traits\UseValidation;
 use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\ObjectNormalizer;
 use Symfony\Component\Serializer\Serializer;
@@ -35,5 +36,13 @@ abstract class Data
         $serializer = new Serializer([new ObjectNormalizer()]);
 
         return $serializer->denormalize($data, static::class);
+    }
+
+    public function throwValidationException(array $errors): void
+    {
+        $exception = new ValidationException();
+        $exception->setErrors($errors);
+
+        throw $exception;
     }
 }

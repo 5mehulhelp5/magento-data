@@ -2,9 +2,10 @@
 
 declare(strict_types=1);
 
-namespace Rkt\MageData\Trait;
+namespace Rkt\MageData\Traits;
 
 use InvalidArgumentException;
+use Rkt\MageData\Exceptions\ValidationException;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Validator\ConstraintViolationInterface;
@@ -22,7 +23,7 @@ trait UseValidation
         return [];
     }
 
-    public function validate(): array
+    public function validate(bool $throwException = true): array
     {
         $validator = Validation::createValidator();
         $rules = $this->rules();
@@ -47,7 +48,7 @@ trait UseValidation
             }
         }
 
-        return $errors;
+        return $throwException ? $this->throwValidationException($errors) : $errors;
     }
 
     private function wrapWithCustomMessageConstraint(string $property, string $rule): Constraint
@@ -79,7 +80,7 @@ trait UseValidation
     {
         $key = "$property.$ruleName";
         $messages = $this->messages();
-        $customMessage = $messages[$key] ?? null;
+        $customMessage = isset($messages[$key]) ? (string)$messages[$key] : null;
 
         if (!$customMessage) {
             return;
