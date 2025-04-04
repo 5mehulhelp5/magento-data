@@ -48,7 +48,11 @@ trait UseValidation
             }
         }
 
-        return $throwException ? $this->throwValidationException($errors) : $errors;
+        if ($throwException && !empty($errors)) {
+            $this->throwValidationException($errors);
+        }
+
+        return $errors;
     }
 
     private function wrapWithCustomMessageConstraint(string $property, string $rule): Constraint
@@ -109,5 +113,13 @@ trait UseValidation
         }
 
         return $value;
+    }
+
+    public function throwValidationException(array $errors): void
+    {
+        $exception = new ValidationException();
+        $exception->setErrors($errors);
+
+        throw $exception;
     }
 }
