@@ -108,7 +108,8 @@ trait UseValidation
     {
         $key = "$property.$ruleName";
         $messages = $this->messages();
-        $customMessage = $messages[$key] ?? null;
+        // This explicit string conversion required as messages can be Phrase instance as well.
+        $customMessage = isset($messages[$key]) ?  (string) $messages[$key] : null;
 
         if (!$customMessage) {
             return;
