@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Rkt\MageData\Traits;
 
 use InvalidArgumentException;
+use Rkt\MageData\Data;
 use Rkt\MageData\Exceptions\ValidationException;
 use Symfony\Component\Validator\Constraint;
 use Symfony\Component\Validator\Constraints as Assert;
@@ -31,6 +32,28 @@ trait UseValidation
 
         foreach ($rules as $propertyPath => $ruleString) {
             $value = $this->resolveValueByPath($propertyPath);
+
+            // 1. Handle nested object validation
+            if ($value instanceof Data) {
+                $nestedErrors = $value->validate(false);
+                foreach ($nestedErrors as $nestedField => $nestedMessages) {
+                    $errors["$propertyPath.$nestedField"] = $nestedMessages;
+                }
+                continue;
+            }
+
+            // 2. Handle array of nested objects
+            if (is_array($value) && !empty($value) && $value[0] instanceof Data) {
+                foreach ($value as $index => $item) {
+                    $nestedErrors = $item->validate(false);
+                    foreach ($nestedErrors as $nestedField => $nestedMessages) {
+                        $errors["$propertyPath.$index.$nestedField"] = $nestedMessages;
+                    }
+                }
+                continue;
+            }
+
+            // 3. Validate scalar fields
             $ruleParts = explode('|', $ruleString);
             $constraints = [];
 
@@ -65,16 +88,17 @@ trait UseValidation
             $params = explode(',', $params);
         }
 
-        /**
-         * @todo we should allow custom validation rules as well.
-         */
         $matchedRule = match ($ruleName) {
             'required' => new Assert\NotBlank(),
             'email' => new Assert\Email(),
             'max' => new Assert\Length(['max' => (int) $params[0]]),
             'min' => new Assert\Length(['min' => (int) $params[0]]),
+            'boolean' => new Assert\Type('bool'),
+            'string' => new Assert\Type('string'),
+            'array' => new Assert\Type('array'),
             default => throw new InvalidArgumentException("Unknown rule: $ruleName"),
         };
+
         $this->addCustomMessageToRule($property, $ruleName, $matchedRule);
 
         return $matchedRule;
@@ -84,13 +108,13 @@ trait UseValidation
     {
         $key = "$property.$ruleName";
         $messages = $this->messages();
-        $customMessage = isset($messages[$key]) ? (string)$messages[$key] : null;
+        $customMessage = $messages[$key] ?? null;
 
         if (!$customMessage) {
             return;
         }
 
-        match($ruleName) {
+        match ($ruleName) {
             'max' => $rule->maxMessage = $customMessage,
             'min' => $rule->minMessage = $customMessage,
             default => $rule->message = $customMessage,

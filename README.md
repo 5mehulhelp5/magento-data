@@ -78,6 +78,40 @@ composer require rkt/magento-data
   ```
   Internally it uses symfony validation to validate these properties.
 
+  You can also validate complex data objects as well. For example:
+  ```
+  class Person extends Data
+  {
+        public function __construct(
+            public string $firstname,
+        ) {}
+        
+        public function rules(): array
+        {
+            return ['firstname' => 'required']
+        }
+  }
+  
+  class Family extends Data
+  {
+        public function __construct(
+            public Person $father,
+            public Person $mother,
+            public ?array $children = [],
+        ) {}
+        
+        public function rules(): array
+        {
+            return ['father' => 'required', 'mother' => 'required']
+        }
+  }
+  ```
+  For this setup, it will make sure `Family` instance should have both father and mother and both father and mother
+  should have a firstname as `Person` rules specifies it. Suppose you specified `children` for Family and they are
+  instance of `Person` data object, then they also get validated. But `children` can be empty in the `Family` instance
+  as it has no rule for it.
+
+
 ### 3. Convert to array or json.
   You have `toArray()` and `toJson()` methods available to convert your data object to an array or json respectively.
 ____
