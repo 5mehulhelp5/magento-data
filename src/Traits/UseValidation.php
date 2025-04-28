@@ -24,7 +24,7 @@ trait UseValidation
         return [];
     }
 
-    public function validate(): void
+    public function validate(bool $throwException = true): void
     {
         $validator = new Validator;
 
@@ -35,7 +35,7 @@ trait UseValidation
 
         $validation->validate();
 
-        if ($validation->fails()) {
+        if ($throwException && $validation->fails()) {
             $this->throwValidationException($validation->errors()->firstOfAll());
         }
 
