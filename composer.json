@@ -4,12 +4,7 @@
     "type": "magento2-module",
     "require": {
         "magento/framework": "*",
-        "magento/module-catalog": ">=103.0.0",
-        "magento/module-checkout": ">=100.3.0",
-        "magento/module-customer": ">=102.0.0",
-        "symfony/serializer": "^7.2.3",
-        "symfony/validator": "^7.2.3",
-        "symfony/property-access": "^7.2.3"
+        "rakit/validation": "*"
     },
     "authors": [{
         "name": "Rajeev K Tomy",
