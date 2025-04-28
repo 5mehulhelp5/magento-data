@@ -71,12 +71,24 @@ composer require rkt/magento-data
     public function messages(): array
     {
         return [
-            'email.email' => 'Customer email is invalid.',
-            'firstname.required' => 'First name cannot be empty. Please fill it.',
+            'email:email' => __('Customer email is invalid.'),
+            'firstname:required' => __('First name cannot be empty. Please fill it.'),
         ];
     }
   ```
-  Internally it uses symfony validation to validate these properties.
+
+  If you want to use aliases for data properties, then it is available via `aliases()` method. An example:
+  ```
+  public function aliases(): array
+  {
+      return [
+          'email' => __('Email Address'),
+      ];
+  }
+  ```
+  Now in errors, it will use `Email Address`  for `email` property.
+
+  Internally it uses `rakit/validation` package to validate these properties.
 
   You can also validate complex data objects as well. For example:
   ```

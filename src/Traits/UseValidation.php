@@ -4,13 +4,8 @@ declare(strict_types=1);
 
 namespace Rkt\MageData\Traits;
 
-use InvalidArgumentException;
-use Rkt\MageData\Data;
+use Rakit\Validation\Validator;
 use Rkt\MageData\Exceptions\ValidationException;
-use Symfony\Component\Validator\Constraint;
-use Symfony\Component\Validator\Constraints as Assert;
-use Symfony\Component\Validator\ConstraintViolationInterface;
-use Symfony\Component\Validator\Validation;
 
 trait UseValidation
 {
@@ -24,120 +19,40 @@ trait UseValidation
         return [];
     }
 
-    public function validate(bool $throwException = true): array
+    public function aliases(): array
     {
-        $validator = Validation::createValidator();
-        $rules = $this->rules();
-        $errors = [];
+        return [];
+    }
 
-        foreach ($rules as $propertyPath => $ruleString) {
-            $value = $this->resolveValueByPath($propertyPath);
+    public function validate(): void
+    {
+        $validator = new Validator;
 
-            // 1. Handle nested object validation
-            if ($value instanceof Data) {
-                $nestedErrors = $value->validate(false);
-                foreach ($nestedErrors as $nestedField => $nestedMessages) {
-                    $errors["$propertyPath.$nestedField"] = $nestedMessages;
-                }
-                continue;
+        $attributes = $this->toArray();
+        $validation = $validator->make($attributes, $this->rules(), $this->messages());
+
+        $validation->setAliases($this->aliases());
+
+        $validation->validate();
+
+        if ($validation->fails()) {
+            $this->throwValidationException($validation->errors()->firstOfAll());
+        }
+
+        // Validate nested DataObjects
+        foreach ($this as $value) {
+            if ($value instanceof self) {
+                $value->validate();
             }
 
-            // 2. Handle array of nested objects
-            if (is_array($value) && !empty($value) && $value[0] instanceof Data) {
-                foreach ($value as $index => $item) {
-                    $nestedErrors = $item->validate(false);
-                    foreach ($nestedErrors as $nestedField => $nestedMessages) {
-                        $errors["$propertyPath.$index.$nestedField"] = $nestedMessages;
+            if (is_array($value)) {
+                foreach ($value as $item) {
+                    if ($item instanceof self) {
+                        $item->validate();
                     }
                 }
-                continue;
-            }
-
-            // 3. Validate scalar fields
-            $ruleParts = explode('|', $ruleString);
-            $constraints = [];
-
-            foreach ($ruleParts as $rule) {
-                $constraints[] = $this->wrapWithCustomMessageConstraint($propertyPath, $rule);
-            }
-
-            $violations = $validator->validate($value, $constraints);
-
-            if (count($violations) > 0) {
-                /** @var ConstraintViolationInterface $violation */
-                foreach ($violations as $violation) {
-                    $errors[$propertyPath][] = $violation->getMessage();
-                }
             }
         }
-
-        if ($throwException && !empty($errors)) {
-            $this->throwValidationException($errors);
-        }
-
-        return $errors;
-    }
-
-    private function wrapWithCustomMessageConstraint(string $property, string $rule): Constraint
-    {
-        $ruleName = $rule;
-        $params = [];
-
-        if (str_contains($rule, ':')) {
-            [$ruleName, $params] = explode(':', $rule, 2);
-            $params = explode(',', $params);
-        }
-
-        $matchedRule = match ($ruleName) {
-            'required' => new Assert\NotBlank(),
-            'email' => new Assert\Email(),
-            'max' => new Assert\Length(['max' => (int) $params[0]]),
-            'min' => new Assert\Length(['min' => (int) $params[0]]),
-            'boolean' => new Assert\Type('bool'),
-            'string' => new Assert\Type('string'),
-            'array' => new Assert\Type('array'),
-            default => throw new InvalidArgumentException("Unknown rule: $ruleName"),
-        };
-
-        $this->addCustomMessageToRule($property, $ruleName, $matchedRule);
-
-        return $matchedRule;
-    }
-
-    private function addCustomMessageToRule(string $property, string $ruleName, Constraint $rule): void
-    {
-        $key = "$property.$ruleName";
-        $messages = $this->messages();
-        // This explicit string conversion required as messages can be Phrase instance as well.
-        $customMessage = isset($messages[$key]) ?  (string) $messages[$key] : null;
-
-        if (!$customMessage) {
-            return;
-        }
-
-        match ($ruleName) {
-            'max' => $rule->maxMessage = $customMessage,
-            'min' => $rule->minMessage = $customMessage,
-            default => $rule->message = $customMessage,
-        };
-    }
-
-    private function resolveValueByPath(string $path): mixed
-    {
-        $segments = explode('.', $path);
-        $value = $this;
-
-        foreach ($segments as $segment) {
-            if (is_object($value) && property_exists($value, $segment)) {
-                $value = $value->{$segment};
-            } elseif (is_array($value) && array_key_exists($segment, $value)) {
-                $value = $value[$segment];
-            } else {
-                return null;
-            }
-        }
-
-        return $value;
     }
 
     public function throwValidationException(array $errors): void
