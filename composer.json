@@ -4,9 +4,7 @@
     "type": "magento2-module",
     "require": {
         "magento/framework": "*",
-        "rakit/validation": "^1.4",
-        "symfony/property-access": "^7.2.3",
-        "symfony/serializer": "^7.2.3"
+        "rakit/validation": "^1.4"
     },
     "authors": [{
         "name": "Rajeev K Tomy",

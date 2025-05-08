@@ -1,130 +1,239 @@
 # Rkt_MageData
 
-Data Object & Data Transfer Objects for Magento 2
+A powerful, lightweight **Data Object & DTO (Data Transfer Object)** system for **Magento 2** — supporting smart instantiation, validation, and serialization.
 
-## Installation
+---
 
-```
+## 🚀 Installation
+
+```bash
 composer require rkt/magento-data
 ```
 
-## Features
-### 1. Get an instance
+---
 
-  Instantiate a data object class using `from` method.
-  With a below data object:
-  ```
-    <?php
-    use Rkt\MageData\Data;
+## ✨ Features Overview
 
-    class ProductImageData extends Data
-    {
-        public function __construct(
-            public string $src,
-            public ?string $alt,
-        ) {
-        }
-    }
-  ```
-  You can get instance using
-  ```
-  $image = ProductImageData::from(['src' => 'https://example.com/image.jpg', 'alt' => 'Awesome image']);
-  ```
-### 2. Validation
+### 1. ✅ Easy Data Object Instantiation
 
-  Validation is a critical feature you get out of box for data object. All you need to do is define `rules()` method
-  within your data object and specify the rules. An example is given below:
-  ```
-    <?php
-    use Rkt\MageData\Data;
+Use the static `from()` or `create()` methods to easily instantiate data objects.
 
-    class Customer extends Data
-    {
-        public function __construct(
-            public string $email,
-            public string $firstname,
-            public string $lastname,
-            public array $street,
-        ) {
-        }
-        
-        public function rules(): array
-        {
-            return [
-                'email' => 'email|required',
-                'firstname' => 'required|min:1|max:250',
-                'lastname' => 'required|min:1|max:250',
-                'street.0' => 'required',
-            ];
-        }
-    }
-  ```
-  As you can see here `rules()` provides array of rules for DO's property. Key represents property name and value represents
-  property rules. Multiple rules are separated by a pipe (`|`). If rule requires additional params (eg: `max`), then they
-  will be provided after a colon (`:`). If there are multiple parameters, then they should be separated with comma (`,`).
+#### Example
 
-  If you have an array property then, it is also possible to provide validation to an individual item as shown above.
+```php
+use Rkt\MageData\Data;
 
-  If you want to provide custom validation messages, then that is also possible. All you need to do is include another method
-  `messages()` in your DO. An example:
-  ```
-    public function messages(): array
+class ProductImageData extends Data
+{
+    public function __construct(
+        public string $src,
+        public ?string $alt = null,
+    ) {}
+}
+```
+
+You can instantiate it like this:
+
+```php
+$image = ProductImageData::from([
+    'src' => 'https://example.com/image.jpg',
+    'alt' => 'Awesome image'
+]);
+```
+
+Or using `create()`:
+
+```php
+$image = ProductImageData::create([
+    'src' => 'https://example.com/image.jpg',
+    'alt' => 'Awesome image'
+]);
+```
+
+---
+
+### 2. 🛡 Validation Built In
+
+This module includes built-in validation using [`rakit/validation`](https://github.com/rakit/validation).
+
+#### 🔹 Basic Validation
+
+Just define a `rules()` method in your data object:
+
+```php
+class Customer extends Data
+{
+    public function __construct(
+        public string $email,
+        public string $firstname,
+        public string $lastname,
+        public array $street,
+    ) {}
+
+    public function rules(): array
     {
         return [
-            'email:email' => __('Customer email is invalid.'),
-            'firstname:required' => __('First name cannot be empty. Please fill it.'),
+            'email' => 'email|required',
+            'firstname' => 'required|min:1|max:250',
+            'lastname' => 'required|min:1|max:250',
+            'street.0' => 'required',
         ];
     }
-  ```
+}
+```
 
-  If you want to use aliases for data properties, then it is available via `aliases()` method. An example:
-  ```
-  public function aliases(): array
-  {
-      return [
-          'email' => __('Email Address'),
-      ];
-  }
-  ```
-  Now in errors, it will use `Email Address`  for `email` property.
+> You can validate array elements (like `street.0`) using dot notation.
 
-  Internally it uses `rakit/validation` package to validate these properties.
+#### 🔹 Custom Validation Messages
 
-  You can also validate complex data objects as well. For example:
-  ```
-  class Person extends Data
-  {
-        public function __construct(
-            public string $firstname,
-        ) {}
-        
-        public function rules(): array
-        {
-            return ['firstname' => 'required']
-        }
-  }
-  
-  class Family extends Data
-  {
-        public function __construct(
-            public Person $father,
-            public Person $mother,
-            public ?array $children = [],
-        ) {}
-        
-        public function rules(): array
-        {
-            return ['father' => 'required', 'mother' => 'required']
-        }
-  }
-  ```
-  For this setup, it will make sure `Family` instance should have both father and mother and both father and mother
-  should have a firstname as `Person` rules specifies it. Suppose you specified `children` for Family and they are
-  instance of `Person` data object, then they also get validated. But `children` can be empty in the `Family` instance
-  as it has no rule for it.
+Override `messages()`:
 
+```php
+public function messages(): array
+{
+    return [
+        'email:email' => __('Customer email is invalid.'),
+        'firstname:required' => __('First name cannot be empty.'),
+    ];
+}
+```
 
-### 3. Convert to array or json.
-  You have `toArray()` and `toJson()` methods available to convert your data object to an array or json respectively.
-____
-**Note:** This module is under construction. More features will be added. Stay tuned :)
+#### 🔹 Custom Field Aliases
+
+Override `aliases()`:
+
+```php
+public function aliases(): array
+{
+    return [
+        'email' => __('Email Address'),
+    ];
+}
+```
+
+In error messages, `email` will now appear as "Email Address".
+
+---
+
+### 3. 🧩 Nested Object Validation
+
+Nested and recursive validation works out of the box:
+
+```php
+class Person extends Data
+{
+    public function __construct(public string $firstname) {}
+
+    public function rules(): array
+    {
+        return ['firstname' => 'required'];
+    }
+}
+
+class Family extends Data
+{
+    public function __construct(
+        public Person $father,
+        public Person $mother,
+        public ?array $children = [],
+    ) {}
+
+    public function rules(): array
+    {
+        return [
+            'father' => 'required',
+            'mother' => 'required',
+        ];
+    }
+}
+```
+
+✅ In this setup:
+
+* `father` and `mother` are required and must pass `Person` validation.
+* `children` can be a list of `Person`, and they’ll be validated too (if provided).
+
+---
+
+### 4. 🧵 Event-Driven Rule Customization
+
+You can dynamically modify validation rules/messages/aliases using Magento events.
+
+#### 🔹 Example
+
+```php
+namespace Rkt\Example\Data;
+
+class MyData extends Data
+{
+    public function __construct(public string $email) {}
+
+    public function rules(): array
+    {
+        return ['email' => 'required'];
+    }
+}
+```
+
+#### 🔸 Event Name
+
+When `validate()` is called, the event `rkt_example_data_mydata_validate_before` is dispatched.
+
+#### 🔹 Observer Configuration (`events.xml`)
+
+```xml
+<event name="rkt_example_data_mydata_validate_before">
+    <observer name="update_mydata_validation_data"
+              instance="Rkt\Example\Observer\UpdateMyDataValidation" />
+</event>
+```
+
+#### 🔹 Sample Observer
+
+```php
+class UpdateMyDataValidation implements ObserverInterface
+{
+    public function execute(Observer $observer)
+    {
+        $transport = $observer->getData('transport');
+
+        $rules = $transport->getData('rules');
+        $rules['email'] = 'required|email';
+
+        $aliases = $transport->getData('aliases');
+        $aliases['email'] = 'Email Address';
+
+        $transport->setData('rules', $rules);
+        $transport->setData('aliases', $aliases);
+    }
+}
+```
+
+✅ Now your validation dynamically adds the `email` rule and alias based on observer logic.
+
+---
+
+### 5. 🔄 Serialization Support
+
+Convert data objects to array or JSON easily:
+
+```php
+$data->toArray(); // → returns an array representation
+
+$data->toJson(); // → returns a JSON string
+```
+
+---
+
+## 📌 Notes
+
+* This module is **under active development** — more features and integrations are coming soon!
+* Built for flexibility, testability, and ease of use in **Magento 2 backend and frontend service layers**.
+
+---
+
+## 💬 Stay Connected
+
+Got feedback or feature requests? PRs and ideas are welcome!
+
+---
