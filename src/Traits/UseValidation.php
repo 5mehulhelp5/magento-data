@@ -7,11 +7,19 @@ namespace Rkt\MageData\Traits;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Rakit\Validation\Validator;
+use Rkt\MageData\Data;
 use Rkt\MageData\Exceptions\ValidationException;
 use Rkt\MageData\Model\DataObjectFactory;
 
 trait UseValidation
 {
+    public static function getValidationRules(array $input): array
+    {
+        $instance = DataObjectFactory::create(static::class, $input);
+
+        return self::flattenRules($instance);
+    }
+
     public function rules(): array
     {
         return [];
@@ -90,4 +98,39 @@ trait UseValidation
             'aliases' => $transport->getData('aliases'),
         ];
     }
+
+    protected static function flattenRules(Data $data, string $prefix = ''): array
+    {
+        $rules = [];
+
+        foreach ($data->rules() as $key => $rule) {
+            $rules[$prefix . $key] = $rule;
+        }
+
+        foreach (get_object_vars($data) as $property => $value) {
+            $fullKey = $prefix . $property;
+
+            if ($value instanceof Data) {
+                $rules[$fullKey] = $rules[$fullKey] ?? 'required';
+                $rules += self::flattenRules($value, "{$fullKey}.");
+            }
+
+            if (is_array($value)) {
+                $hasDataObjects = array_filter($value, fn($v) => $v instanceof Data);
+
+                if ($hasDataObjects) {
+                    $rules[$fullKey] = $rules[$fullKey] ?? 'nullable|array';
+
+                    foreach ($value as $index => $item) {
+                        if ($item instanceof Data) {
+                            $rules += self::flattenRules($item, "{$fullKey}.{$index}.");
+                        }
+                    }
+                }
+            }
+        }
+
+        return $rules;
+    }
+
 }

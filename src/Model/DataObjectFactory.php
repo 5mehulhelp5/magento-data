@@ -12,12 +12,16 @@ use ReflectionParameter;
 
 class DataObjectFactory
 {
-    private static ?ObjectManagerInterface $om = null;
+    /**
+     * @var ObjectManagerInterface
+     */
+    private static $om = null;
 
     /**
      * Can be used in tests to override the default ObjectManager.
+     * @param ObjectManagerInterface $om
      */
-    public static function init(ObjectManagerInterface $om): void
+    public static function init($om): void
     {
         self::$om = $om;
     }

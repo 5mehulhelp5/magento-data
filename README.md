@@ -223,6 +223,79 @@ $data->toArray(); // → returns an array representation
 $data->toJson(); // → returns a JSON string
 ```
 
+
+### 6. Fetch validations rules applicable to the data
+
+You can get the validation rules applicable for a payload like this.
+
+```php
+class Family extends Data
+{
+    public function __construct(
+        public Person $father,
+        public Person $mother,
+        public ?array $children = [],
+    ) {
+    }
+
+    public function rules(): array
+    {
+        return [
+            'father' => 'required',
+            'mother' => 'required',
+            'children' => 'array|nullable'
+        ];
+    }
+}
+
+class Person extends Data
+{
+    use UseValidation;
+
+    public function __construct(
+        public string $firstname,
+        public string $lastname,
+        public string $email,
+    ) {
+    }
+
+    public function rules(): array
+    {
+        return [
+            'email' => 'required|email',
+            'firstname' => 'required',
+            'lastname' => 'required',
+        ];
+    }
+}
+```
+
+Now if you call 
+
+```php
+$rules = Family::getValidationRules([
+    'father' => ['firstname' => 'John', 'lastname' => 'Doe', 'email' => 'john@example.com'],
+    'mother' => ['firstname' => 'Jane', 'lastname' => 'Doe', 'email' => 'jane@example.com'],
+    'children' => [
+        ['firstname' => 'Jimmy', 'lastname' => 'Doe', 'email' => 'jimmy@example.com'],
+    ],
+]);
+```
+Will provide you below result:
+
+```php
+$rules = [
+    'father' => 'required',
+    'father.firstname' => 'required',
+    'father.lastname' => 'required',
+    'father.email' => 'required|email',
+    'mother' => 'required',
+    'mother.firstname' => 'required',
+    'mother.lastname' => 'required',
+    'mother.email' => 'required|email',
+    'children' => 'array|null',
+]
+```
 ---
 
 ## 📌 Notes

@@ -18,7 +18,8 @@
             "src/registration.php"
         ],
         "psr-4": {
-            "Rkt\\MageData\\": "src/"
+            "Rkt\\MageData\\": "src/",
+            "Rkt\\MageData\\Tests\\": "tests/"
         }
     }
 }
