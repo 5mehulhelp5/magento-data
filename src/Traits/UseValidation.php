@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Rkt\MageData\Traits;
 
+use Closure;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Rakit\Validation\Rule;
+use Rakit\Validation\Rules\Callback;
 use Rakit\Validation\Validator;
 use Rkt\MageData\Data;
 use Rkt\MageData\Exceptions\ValidationException;
@@ -35,17 +38,28 @@ trait UseValidation
         return [];
     }
 
+    public function customRules(): array
+    {
+        return [];
+    }
+
     public function validate(bool $throwException = true): void
     {
         $validator = new Validator;
 
-        $attributes = $this->toArray();
+        // Inject custom validation rules
+        $this->addCustomValidationRules($validator);
 
         // Dispatch event to allow extensions to rules, messages or aliases
-        ['rules' => $rules, 'messages' => $messages, 'aliases' => $aliases]
-            = $this->dispatchValidationPrepareEvent($this->rules(), $this->messages(), $this->aliases());
+        $transport = $this->dispatchValidationPrepareEvent([
+            'rules' => $this->rules(),
+            'messages' => $this->messages(),
+            'aliases' => $this->aliases(),
+            'validator' => $validator,
+        ]);
 
-        $validation = $validator->make($attributes, $rules, $messages);
+        ['rules' => $rules, 'messages' => $messages, 'aliases' => $aliases, 'validator' => $validator] = $transport;
+        $validation = $validator->make($this->toArray(), $rules, $messages);
         $validation->setAliases($aliases);
         $validation->validate();
 
@@ -77,15 +91,11 @@ trait UseValidation
         throw $exception;
     }
 
-    private function dispatchValidationPrepareEvent(array $rules, array $messages, array $aliases): array
+    private function dispatchValidationPrepareEvent(array $eventData): array
     {
         $eventName = strtolower(str_replace('\\', '_', static::class)) . '_validate_before';
 
-        $transport = new DataObject([
-            'rules' => $rules,
-            'messages' => $messages,
-            'aliases' => $aliases,
-        ]);
+        $transport = new DataObject($eventData);
 
         DataObjectFactory::get(EventManager::class)->dispatch($eventName, [
             'object' => $this,
@@ -96,6 +106,7 @@ trait UseValidation
             'rules' => $transport->getData('rules'),
             'messages' => $transport->getData('messages'),
             'aliases' => $transport->getData('aliases'),
+            'validator' => $transport->getData('validator'),
         ];
     }
 
@@ -133,4 +144,39 @@ trait UseValidation
         return $rules;
     }
 
+    private function addCustomValidationRules(Validator $validator): void
+    {
+        foreach ($this->customRules() as $ruleName => $customRule) {
+            $ruleInstance = match (true) {
+                $customRule instanceof Closure => $this->createCallbackRule($customRule),
+                $customRule instanceof Rule => $customRule,
+                is_string($customRule) && class_exists($customRule) => $this->resolveRuleInstance($customRule),
+                default => throw new \InvalidArgumentException(
+                    sprintf("Invalid rule definition for '%s'", $ruleName)
+                ),
+            };
+
+            $validator->addValidator($ruleName, $ruleInstance);
+        }
+    }
+
+    private function createCallbackRule(Closure $closure): Rule
+    {
+        $callback = new Callback();
+        $callback->setCallback($closure);
+        return $callback;
+    }
+
+    private function resolveRuleInstance(string $className): Rule
+    {
+        $instance = DataObjectFactory::get($className);
+
+        if (!$instance instanceof Rule) {
+            throw new \InvalidArgumentException(
+                sprintf("Class %s must implement Rakit\\Validation\\Rule.", $className)
+            );
+        }
+
+        return $instance;
+    }
 }

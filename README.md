@@ -155,7 +155,75 @@ class Family extends Data
 
 ---
 
-### 4. 🧵 Event-Driven Rule Customization
+### 4. 🔹 Custom Validation Rules via `customRules()`
+
+You can define reusable or inline validation rules using `customRules()`. Two types of custom rules are supported:
+
+#### ✅ 1. **Closure-Based Rules**
+
+Use closures for simple, inline validation logic.
+
+```php
+public function rules(): array
+{
+    return [
+        'email' => 'required|company_email',
+    ];
+}
+
+public function customRules(): array
+{
+    return [
+        'company_email' => function ($value) {
+            return str_ends_with($value, '@example.com');
+        },
+    ];
+}
+```
+> ℹ️ The closure is automatically registered using the [`callback` rule](https://github.com/rakit/validation#callback-rule) provided by `rakit/validation`.
+
+---
+
+#### ✅ 2. **Custom Rule Class**
+
+For more reusable or complex logic, use a rule class. The given rule must be in compliance with [rakit/validation](https://github.com/rakit/validation?tab=readme-ov-file#registeroverride-rule).
+Basically the rule class must extend `Rakit\Validation\Rule`.
+
+```php
+use Rakit\Validation\Rule;
+
+class CompanyEmailRule extends Rule
+{
+    protected $message = ':attribute must be a company email (e.g. @example.com).';
+
+    public function check($value): bool
+    {
+        return str_ends_with($value, '@example.com');
+    }
+}
+```
+
+```php
+public function rules(): array
+{
+    return [
+        'email' => 'required|company_email',
+    ];
+}
+
+public function customRules(): array
+{
+    return [
+        'company_email' => CompanyEmailRule::class,
+    ];
+}
+```
+
+> ✅ You can also return an instantiated object if needed — it will be registered directly.
+
+---
+
+### 5. 🧵 Event-Driven Rule Customization
 
 You can dynamically modify validation rules/messages/aliases using Magento events.
 
@@ -213,7 +281,7 @@ class UpdateMyDataValidation implements ObserverInterface
 
 ---
 
-### 5. 🔄 Serialization Support
+### 6. 🔄 Serialization Support
 
 Convert data objects to array or JSON easily:
 
@@ -224,7 +292,7 @@ $data->toJson(); // → returns a JSON string
 ```
 
 
-### 6. Fetch validations rules applicable to the data
+### 7. Fetch validations rules applicable to the data
 
 You can get the validation rules applicable for a payload like this.
 
