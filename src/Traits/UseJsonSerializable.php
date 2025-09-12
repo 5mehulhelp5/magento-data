@@ -21,7 +21,13 @@ trait UseJsonSerializable
 
     public function jsonSerialize(): array
     {
-        $data = get_object_vars($this);
+        $reflection = new \ReflectionClass($this);
+        $data = [];
+
+        foreach ($reflection->getProperties(\ReflectionProperty::IS_PUBLIC) as $prop) {
+            $name = $prop->getName();
+            $data[$name] = $prop->getValue($this);
+        }
 
         if ($this->onlyKeys !== null) {
             return array_intersect_key($data, array_flip($this->onlyKeys));
