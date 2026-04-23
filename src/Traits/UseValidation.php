@@ -7,9 +7,9 @@ namespace Rkt\MageData\Traits;
 use Closure;
 use Magento\Framework\DataObject;
 use Magento\Framework\Event\ManagerInterface as EventManager;
-use Rakit\Validation\Rule;
-use Rakit\Validation\Rules\Callback;
-use Rakit\Validation\Validator;
+use Somnambulist\Components\Validation\Factory;
+use Somnambulist\Components\Validation\Rule;
+use Somnambulist\Components\Validation\Rules\Callback;
 use Rkt\MageData\Data;
 use Rkt\MageData\Exceptions\ValidationException;
 use Rkt\MageData\Model\DataObjectFactory;
@@ -45,7 +45,7 @@ trait UseValidation
 
     public function validate(bool $throwException = true): void
     {
-        $validator = new Validator;
+        $validator = new Factory();
 
         // Inject custom validation rules
         $this->addCustomValidationRules($validator);
@@ -59,8 +59,13 @@ trait UseValidation
         ]);
 
         ['rules' => $rules, 'messages' => $messages, 'aliases' => $aliases, 'validator' => $validator] = $transport;
-        $validation = $validator->make($this->toArray(), $rules, $messages);
-        $validation->setAliases($aliases);
+        $validation = $validator->make($this->toArray(), $rules);
+        $validation->messages()->add('en', $this->normalizeMessages($messages));
+
+        foreach ($aliases as $key => $alias) {
+            $validation->setAlias($key, $alias);
+        }
+
         $validation->validate();
 
         if ($throwException && $validation->fails()) {
@@ -144,7 +149,7 @@ trait UseValidation
         return $rules;
     }
 
-    private function addCustomValidationRules(Validator $validator): void
+    private function addCustomValidationRules(Factory $validator): void
     {
         foreach ($this->customRules() as $ruleName => $customRule) {
             $ruleInstance = match (true) {
@@ -156,15 +161,13 @@ trait UseValidation
                 ),
             };
 
-            $validator->addValidator($ruleName, $ruleInstance);
+            $validator->addRule($ruleName, $ruleInstance);
         }
     }
 
     private function createCallbackRule(Closure $closure): Rule
     {
-        $callback = new Callback();
-        $callback->setCallback($closure);
-        return $callback;
+        return (new Callback())->through($closure);
     }
 
     private function resolveRuleInstance(string $className): Rule
@@ -173,10 +176,31 @@ trait UseValidation
 
         if (!$instance instanceof Rule) {
             throw new \InvalidArgumentException(
-                sprintf("Class %s must implement Rakit\\Validation\\Rule.", $className)
+                sprintf("Class %s must extend Somnambulist\\Components\\Validation\\Rule.", $className)
             );
         }
 
         return $instance;
+    }
+
+    private function normalizeMessages(array $messages): array
+    {
+        $normalized = [];
+
+        foreach ($messages as $key => $message) {
+            if (!is_string($key) || !is_string($message)) {
+                continue;
+            }
+
+            if (str_contains($key, ':') || !str_contains($key, '.')) {
+                $normalized[$key] = $message;
+                continue;
+            }
+
+            $position = strrpos($key, '.');
+            $normalized[substr($key, 0, $position) . ':' . substr($key, $position + 1)] = $message;
+        }
+
+        return $normalized;
     }
 }

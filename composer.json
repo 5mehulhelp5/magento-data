@@ -4,7 +4,7 @@
     "type": "magento2-module",
     "require": {
         "magento/framework": "*",
-        "rakit/validation": "^1.4"
+        "somnambulist/validation": "^1.13"
     },
     "authors": [{
         "name": "Rajeev K Tomy",
