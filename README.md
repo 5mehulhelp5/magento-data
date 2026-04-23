@@ -157,7 +157,7 @@ class Family extends Data
 
 ### 4. 🔹 Custom Validation Rules via `customRules()`
 
-You can define reusable or inline validation rules using `customRules()`. Two types of custom rules are supported:
+You can define reusable or inline validation rules using `customRules()`. The package supports closure and class-based custom rules, and can also provide built-in reusable rules.
 
 #### ✅ 1. **Closure-Based Rules**
 
@@ -220,6 +220,48 @@ public function customRules(): array
 ```
 
 > ✅ You can also return an instantiated object if needed — it will be registered directly.
+
+---
+
+#### 🔹 Built-in Custom Rules
+
+`Rkt_MageData` also contains reusable custom rules that you can register in `customRules()`.
+
+Current built-in rules:
+
+* `form_key` → `Rkt\MageData\Model\Validation\Rule\FormKeyRule`
+
+Example:
+
+```php
+use Rkt\MageData\Data;
+use Rkt\MageData\Model\Validation\Rule\FormKeyRule;
+
+class ContactFormData extends Data
+{
+    public function __construct(
+        public string $form_key,
+        public string $email,
+    ) {}
+
+    public function rules(): array
+    {
+        return [
+            'form_key' => 'required|form_key',
+            'email' => 'required|email',
+        ];
+    }
+
+    public function customRules(): array
+    {
+        return [
+            'form_key' => FormKeyRule::class,
+        ];
+    }
+}
+```
+
+If you think that any other custom rules should be part of the package, then feel free to create an issue for it.
 
 ---
 
