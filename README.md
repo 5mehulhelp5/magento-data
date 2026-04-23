@@ -54,7 +54,7 @@ $image = ProductImageData::create([
 
 ### 2. 🛡 Validation Built In
 
-This module includes built-in validation using [`rakit/validation`](https://github.com/rakit/validation).
+This module includes built-in validation using [`somnambulist/validation`](https://github.com/somnambulist-tech/validation).
 
 #### 🔹 Basic Validation
 
@@ -180,17 +180,17 @@ public function customRules(): array
     ];
 }
 ```
-> ℹ️ The closure is automatically registered using the [`callback` rule](https://github.com/rakit/validation#callback-rule) provided by `rakit/validation`.
+> ℹ️ The closure is automatically registered using the `callback` rule provided by `somnambulist/validation`.
 
 ---
 
 #### ✅ 2. **Custom Rule Class**
 
-For more reusable or complex logic, use a rule class. The given rule must be in compliance with [rakit/validation](https://github.com/rakit/validation?tab=readme-ov-file#registeroverride-rule).
-Basically the rule class must extend `Rakit\Validation\Rule`.
+For more reusable or complex logic, use a rule class. The given rule must be in compliance with [somnambulist/validation](https://github.com/somnambulist-tech/validation#registeroverride-rules).
+Basically the rule class must extend `Somnambulist\Components\Validation\Rule`.
 
 ```php
-use Rakit\Validation\Rule;
+use Somnambulist\Components\Validation\Rule;
 
 class CompanyEmailRule extends Rule
 {
